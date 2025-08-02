@@ -52,7 +52,7 @@ class PasswordRestSerializer(serializers.Serializer):
         print(token)
         uid = user.pk
         FRONTEND_URL = get_env_variable("FRONTEND_URL")
-        RESEND_API_KEY = "re_E6LqXrZs_C255K2BkjsnAg4huEi73fTKJ"
+        RESEND_API_KEY = get_env_variable("RESEND_API_KEY ")
         reset_url = f"{FRONTEND_URL}/reset-password/{uid}/{token}"
 
         resend.api_key = RESEND_API_KEY
