@@ -6,6 +6,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings
 from utils.env import get_env_variable
+import resend
 
 class SignUpSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6),
@@ -22,6 +23,10 @@ class SignUpSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.ModelSerializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'password']
 
     def validate(self, data):
         user = authenticate(username=data['username'], password=data['password'])
@@ -41,16 +46,27 @@ class PasswordRestSerializer(serializers.Serializer):
         return value
     
     def save(self):
-        user = User.objects.get(email = self.validated_dataa['email'])
+        user = User.objects.get(email = self.validated_data['email'])
+        print(user)
         token = default_token_generator.make_token(user)
+        print(token)
         uid = user.pk
         FRONTEND_URL = get_env_variable("FRONTEND_URL")
-        reset_url = f"{FRONTEND_URL}/reset-password/{uid}/token"
+        RESEND_API_KEY = "re_E6LqXrZs_C255K2BkjsnAg4huEi73fTKJ"
+        reset_url = f"{FRONTEND_URL}/reset-password/{uid}/{token}"
 
-        send_mail(
-            subject="Reset your password",
-            message=f"Click to reset: {reset_url}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-        )
+        resend.api_key = RESEND_API_KEY
+
+        params: resend.Emails.SendParams = {
+            "from": "Acme <onboarding@resend.dev>",
+            "to": ["mayank9178@gmail.com"],
+            "subject": f"Reset your password, {user.username}",
+            "html": f"""<strong>Hello {user.username},</strong><br/><br/>
+                    Click <a href="{reset_url}">here</a> to reset your password.""",
+        }
+
+        print(params)
+        email = resend.Emails.send(params)
+        print(email)
+
         return reset_url
